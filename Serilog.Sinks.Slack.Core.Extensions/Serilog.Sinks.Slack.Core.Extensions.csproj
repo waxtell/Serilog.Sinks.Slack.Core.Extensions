@@ -2,6 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>Will Axtell</Authors>
+    <Description>Verbose logging extension for Serilog.Sinks.Slack.Core</Description>
+    <PackageProjectUrl>https://github.com/waxtell/Serilog.Sinks.Slack.Core.Extensions</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/waxtell/Serilog.Sinks.Slack.Core.Extensions.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>Serilog Slack Verbose</PackageTags>
+    <PackageReleaseNotes>1.0.0 - Initial release</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
