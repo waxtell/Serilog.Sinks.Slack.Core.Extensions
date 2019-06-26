@@ -41,6 +41,20 @@ namespace Serilog.Sinks.Slack.Core.Extensions
                     return;
                 }
 
+                if (propertyValue is SequenceValue seqVal)
+                {
+                    for (var i=0;i<seqVal.Elements.Count;i++)
+                    {
+                        path.Push($"[{i}]");
+
+                        FlattenPropertyValue(path, seqVal.Elements.ElementAt(i));
+
+                        path.Pop();
+                    }
+
+                    return;
+                }
+
                 using (var writer = new StringWriter())
                 {
                     propertyValue.Render(writer,null, formatProvider);
