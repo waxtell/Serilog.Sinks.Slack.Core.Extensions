@@ -20,9 +20,25 @@ namespace Serilog.Sinks.Slack.Core.Extensions
         {
             var attachmentFields = new List<(string section, IEnumerable<string> path, string value)>();
 
+            string Render(LogEventPropertyValue propertyValue)
+            {
+                using (var writer = new StringWriter())
+                {
+                    propertyValue.Render(writer, null, formatProvider);
+
+                    return writer.ToString();
+                }
+            }
+
             void FlattenProperty(Stack<string> path, LogEventProperty property)
             {
-                path.Push(property.Name);
+                path
+                    .Push
+                    (
+                        path.Count > 1 
+                            ? $".{property.Name}" 
+                            : property.Name
+                    );
 
                 FlattenPropertyValue(path, property.Value);
 
@@ -31,9 +47,9 @@ namespace Serilog.Sinks.Slack.Core.Extensions
 
             void FlattenPropertyValue(Stack<string> path, LogEventPropertyValue propertyValue)
             {
-                if (propertyValue is StructureValue sval)
+                if (propertyValue is StructureValue structureValue)
                 {
-                    foreach (var p in sval.Properties)
+                    foreach (var p in structureValue.Properties)
                     {
                         FlattenProperty(path, p);
                     }
@@ -41,13 +57,13 @@ namespace Serilog.Sinks.Slack.Core.Extensions
                     return;
                 }
 
-                if (propertyValue is SequenceValue seqVal)
+                if (propertyValue is DictionaryValue dictionaryValue)
                 {
-                    for (var i=0;i<seqVal.Elements.Count;i++)
+                    foreach (var key in dictionaryValue.Elements.Keys)
                     {
-                        path.Push($"[{i}]");
+                        path.Push(Render(key));
 
-                        FlattenPropertyValue(path, seqVal.Elements.ElementAt(i));
+                        FlattenPropertyValue(path, dictionaryValue.Elements[key]);
 
                         path.Pop();
                     }
@@ -55,12 +71,25 @@ namespace Serilog.Sinks.Slack.Core.Extensions
                     return;
                 }
 
-                using (var writer = new StringWriter())
+                if (propertyValue is SequenceValue sequenceValue)
                 {
-                    propertyValue.Render(writer,null, formatProvider);
+                    for (var i=0;i<sequenceValue.Elements.Count;i++)
+                    {
+                        path.Push($"[{i}]");
 
-                    AddField(path.Reverse().ToList(),writer.ToString());
+                        FlattenPropertyValue(path, sequenceValue.Elements.ElementAt(i));
+
+                        path.Pop();
+                    }
+
+                    return;
                 }
+
+                AddField
+                (
+                    path.Reverse().ToList(),
+                    Render(propertyValue)
+                );
             }
 
             void AddField(IList<string> path, string value)
@@ -87,7 +116,7 @@ namespace Serilog.Sinks.Slack.Core.Extensions
                                     .Select
                                     (
                                         x => x.path.Any()
-                                            ?$"{string.Join(".", x.path)}::{x.value}"
+                                            ?$"{string.Join(string.Empty, x.path)}::{x.value}"
                                             :x.value
                                     )
                             )
@@ -99,19 +128,20 @@ namespace Serilog.Sinks.Slack.Core.Extensions
         {
             object WrapExceptionInAttachment(Exception ex)
             {
-                return new
-                {
-                    title = "Exception",
-                    fallback = $"Exception: {ex.Message} {Environment.NewLine} {ex.StackTrace}",
-                    color = GetAttachmentColor(LogEventLevel.Fatal),
-                    fields = new[]
+                return 
+                    new
                     {
-                        CreateAttachmentField("Message", ex.Message),
-                        CreateAttachmentField("Type", $"`{ex.GetType().Name}`"),
-                        CreateAttachmentField("Stack Trace", $"```{ex.StackTrace}```", false)
-                    },
-                    mrkdwn_in = new[] { "fields" }
-                };
+                        title = "Exception",
+                        fallback = $"Exception: {ex.Message} {Environment.NewLine} {ex.StackTrace}",
+                        color = GetAttachmentColor(LogEventLevel.Fatal),
+                        fields = new[]
+                        {
+                            CreateAttachmentField("Message", ex.Message),
+                            CreateAttachmentField("Type", $"`{ex.GetType().Name}`"),
+                            CreateAttachmentField("Stack Trace", $"```{ex.StackTrace}```", false)
+                        },
+                        mrkdwn_in = new[] { "fields" }
+                    };
             }
 
             IEnumerable<dynamic> WrapInAttachment(LogEvent log)
