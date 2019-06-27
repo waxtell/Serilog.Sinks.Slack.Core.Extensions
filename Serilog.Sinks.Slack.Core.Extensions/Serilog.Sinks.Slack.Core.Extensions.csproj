@@ -9,9 +9,10 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>Serilog Slack Verbose</PackageTags>
     <PackageReleaseNotes>1.0.0 - Initial release
-1.0.1 - Improved support for collections</PackageReleaseNotes>
+1.0.1-beta - Improved support for collections
+1.0.1-beta-1 - Added support for dictionaries</PackageReleaseNotes>
     <VersionPrefix>1.0.1</VersionPrefix>
-    <VersionSuffix>beta</VersionSuffix>
+    <VersionSuffix>beta-1</VersionSuffix>
   </PropertyGroup>
 
   <ItemGroup>
