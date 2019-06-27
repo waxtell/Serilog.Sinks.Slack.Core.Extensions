@@ -47,49 +47,54 @@ namespace Serilog.Sinks.Slack.Core.Extensions
 
             void FlattenPropertyValue(Stack<string> path, LogEventPropertyValue propertyValue)
             {
-                if (propertyValue is StructureValue structureValue)
+                switch (propertyValue)
                 {
-                    foreach (var p in structureValue.Properties)
+                    case StructureValue structureValue:
                     {
-                        FlattenProperty(path, p);
+                        foreach (var p in structureValue.Properties)
+                        {
+                            FlattenProperty(path, p);
+                        }
+
+                        return;
                     }
 
-                    return;
-                }
-
-                if (propertyValue is DictionaryValue dictionaryValue)
-                {
-                    foreach (var key in dictionaryValue.Elements.Keys)
+                    case DictionaryValue dictionaryValue:
                     {
-                        path.Push(Render(key));
+                        foreach (var key in dictionaryValue.Elements.Keys)
+                        {
+                            path.Push(Render(key));
 
-                        FlattenPropertyValue(path, dictionaryValue.Elements[key]);
+                            FlattenPropertyValue(path, dictionaryValue.Elements[key]);
 
-                        path.Pop();
+                            path.Pop();
+                        }
+
+                        return;
                     }
 
-                    return;
-                }
-
-                if (propertyValue is SequenceValue sequenceValue)
-                {
-                    for (var i=0;i<sequenceValue.Elements.Count;i++)
+                    case SequenceValue sequenceValue:
                     {
-                        path.Push($"[{i}]");
+                        for (var i=0;i<sequenceValue.Elements.Count;i++)
+                        {
+                            path.Push($"[{i}]");
 
-                        FlattenPropertyValue(path, sequenceValue.Elements.ElementAt(i));
+                            FlattenPropertyValue(path, sequenceValue.Elements.ElementAt(i));
 
-                        path.Pop();
+                            path.Pop();
+                        }
+
+                        return;
                     }
 
-                    return;
+                    default:
+                        AddField
+                        (
+                            path.Reverse().ToList(),
+                            Render(propertyValue)
+                        );
+                        break;
                 }
-
-                AddField
-                (
-                    path.Reverse().ToList(),
-                    Render(propertyValue)
-                );
             }
 
             void AddField(IList<string> path, string value)
